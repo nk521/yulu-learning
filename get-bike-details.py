@@ -3,12 +3,16 @@ import os
 from Crypto.Cipher import AES
 import binascii
 
-jwt_key = os.environ.get("YULU_JWT")
+BASE_URL = "https://ipa.passion.bike/"
+RIDE_RESET_UNLOCK_URL = "s/ride-request-unlock"
+GET_BIKE_DETAILS_URL = "s/get-bike-ble-details"
+
+JWT_KEY = os.environ.get("YULU_JWT")
 
 headers = {
     "Host": "ipa.passion.bike",
     "Accept": "application/json",
-    "Authorization": f"Bearer {jwt_key}",
+    "Authorization": f"Bearer {JWT_KEY}",
     "Accept-Language": "en",
     "Content-Type": "application/json; charset=UTF-8",
     "User-Agent": "okhttp/4.9.1",
@@ -24,22 +28,28 @@ json_data = {
 }
 
 
+# response = requests.post(
+#     BASE_URL + RIDE_RESET_UNLOCK_URL,
+#     headers=headers,
+#     json=json_data,
+# )
+
 response = requests.post(
-    "https://ipa.passion.bike/s/ride-request-unlock",
+    BASE_URL + GET_BIKE_DETAILS_URL,
     headers=headers,
-    json=json_data,
+    json={"bike_name": json_data["bikeQrCode"]},
 )
 print(response.text)
 
 response_json = response.json()
 
-if not response_json.get("bike", 0):
-    print("fucked up")
+if response.url.endswith(RIDE_RESET_UNLOCK_URL):
+    x = "bike"
+else:
+    x = "data"
 
-iv = response_json["bike"]["device_info"]["iv"].encode()
-encrypted_text = binascii.unhexlify(
-    response_json["bike"]["device_info"]["encryptedData"]
-)
+iv = response_json[x]["device_info"]["iv"].encode()
+encrypted_text = binascii.unhexlify(response_json[x]["device_info"]["encryptedData"])
 key = b"SSNUBSMCRNPASCAS"  # 53534e5542534d43524e504153434153
 expected = b"00112233445566778899aabbccddeeff\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10"
 
